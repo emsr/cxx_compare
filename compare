@@ -1,0 +1,577 @@
+// The comparison support library <compare>.
+
+// Copyright (C) 2018 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 3, or (at your option)
+// any later version.
+
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
+
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
+
+/** @file include/compare
+ *  This is a Standard C++ Library header.
+ */
+
+#ifndef _GLIBCXX_COMPARE
+#define _GLIBCXX_COMPARE 1
+
+#pragma GCC system_header
+
+#if __cplusplus > 201703L
+
+namespace std _GLIBCXX_VISIBILITY(default)
+{
+_GLIBCXX_BEGIN_NAMESPACE_VERSION
+
+  enum class eq
+  {
+    equal         = 0,
+    equivalent    = equal,
+    nonequal      = 1,
+    nonequivalent = nonequal
+  };
+
+  enum class ord
+  {
+    less    = -1,
+    greater = 1
+  };
+
+  enum class ncmp
+  {
+    unordered = -127
+  };
+
+  // class weak_equality
+
+  class weak_equality
+  {
+    int _M_value;
+
+    explicit constexpr
+    weak_equality(eq __v) noexcept
+    : _M_value(int(__v))
+    { }
+
+  public:
+
+    // valid values
+    static const weak_equality equivalent;
+    static const weak_equality nonequivalent;
+
+    // comparisons
+    friend constexpr bool
+    operator==(weak_equality __v, nullptr_t) noexcept
+    { return __v._M_value == 0; }
+
+    friend constexpr bool
+    operator!=(weak_equality __v, nullptr_t) noexcept
+    { return __v._M_value != 0; }
+
+    friend constexpr bool
+    operator==(nullptr_t, weak_equality __v) noexcept
+    { return 0 == __v._M_value; }
+
+    friend constexpr bool
+    operator!=(nullptr_t, weak_equality __v) noexcept
+    { return 0 != __v._M_value; }
+  };
+
+  // valid values's definitions
+
+  inline constexpr weak_equality
+  weak_equality::equivalent(eq::equivalent);
+
+  inline constexpr weak_equality
+  weak_equality::nonequivalent(eq::nonequivalent);
+
+  // class strong_equality
+
+  class strong_equality
+  {
+    int _M_value;
+
+    explicit constexpr
+    strong_equality(eq __v) noexcept
+    : _M_value(int(__v))
+    { }
+
+    public:
+
+    // valid values
+    static const strong_equality equal;
+    static const strong_equality nonequal;
+    static const strong_equality equivalent;
+    static const strong_equality nonequivalent;
+
+    // conversion
+    constexpr operator
+    weak_equality() const noexcept
+    {
+      return *this == equal
+	? weak_equality::equivalent
+	: weak_equality::nonequivalent;
+    }
+
+    // comparisons
+    friend constexpr bool
+    operator==(strong_equality __v, nullptr_t) noexcept
+    { return __v._M_value == 0; }
+
+    friend constexpr bool
+    operator!=(strong_equality __v, nullptr_t) noexcept
+    { return __v._M_value != 0; }
+
+    friend constexpr bool
+    operator==(nullptr_t, strong_equality __v) noexcept
+    { return 0 == __v._M_value; }
+
+    friend constexpr bool
+    operator!=(nullptr_t, strong_equality __v) noexcept
+    { return 0 != __v._M_value; }
+  };
+
+  // valid values's definitions
+
+  inline constexpr strong_equality
+  strong_equality::equal(eq::equal);
+
+  inline constexpr strong_equality
+  strong_equality::nonequal(eq::nonequal);
+
+  inline constexpr strong_equality
+  strong_equality::equivalent(eq::equivalent);
+
+  inline constexpr strong_equality
+  strong_equality::nonequivalent(eq::nonequivalent);
+
+  // class partial_ordering
+
+  class partial_ordering
+  {
+#if SMALLTHING
+    struct
+    {
+      int  _M_compare : 7;
+      bool _M_is_ordered : 1;
+    }
+    _M_value;
+
+    explicit partial_ordering(eq __v)
+    : value{(int)__v, true}
+    { }
+
+    explicit partial_ordering(ord __v)
+    : value{(int)__v, true}
+    { }
+
+    explicit partial_ordering(ncmp __v)
+    : value{(int)__v, false}
+    { }
+#else
+    int  _M_value;
+    bool _M_is_ordered;
+
+    // exposition-only constructors
+
+    explicit constexpr
+    partial_ordering(eq __v) noexcept
+    : _M_value(int(__v)), _M_is_ordered(true)
+    { }
+
+    explicit constexpr
+    partial_ordering(ord __v) noexcept
+    : _M_value(int(__v)), _M_is_ordered(true)
+    { }
+
+    explicit constexpr
+    partial_ordering(ncmp __v) noexcept
+    : _M_value(int(__v)), _M_is_ordered(false)
+    { }
+#endif
+
+  public:
+
+    // valid values
+
+    static const partial_ordering less;
+    static const partial_ordering equivalent;
+    static const partial_ordering greater;
+    static const partial_ordering unordered;
+
+    // conversion
+
+    constexpr operator
+    weak_equality() const noexcept
+    {
+      return *this == equivalent
+	? weak_equality::equivalent
+	: weak_equality::nonequivalent;
+    }
+
+    // comparisons
+
+    friend constexpr bool
+    operator==(partial_ordering __v, nullptr_t) noexcept
+    { return __v._M_is_ordered && __v._M_value == 0; }
+
+    friend constexpr bool
+    operator!=(partial_ordering __v, nullptr_t) noexcept
+    { return !__v._M_is_ordered || __v._M_value != 0; }
+
+    friend constexpr bool
+    operator<(partial_ordering __v, nullptr_t) noexcept
+    { return __v._M_is_ordered && __v._M_value < 0; }
+
+    friend constexpr bool
+    operator<=(partial_ordering __v, nullptr_t) noexcept
+    { return __v._M_is_ordered && __v._M_value <= 0; }
+
+    friend constexpr bool
+    operator>(partial_ordering __v, nullptr_t) noexcept
+    { return __v._M_is_ordered && __v._M_value > 0; }
+
+    friend constexpr bool
+    operator>=(partial_ordering __v, nullptr_t) noexcept
+    { return __v._M_is_ordered && __v._M_value >= 0; }
+
+    friend constexpr bool
+    operator==(nullptr_t, partial_ordering __v) noexcept
+    { return __v._M_is_ordered && 0 == __v._M_value; }
+
+    friend constexpr bool
+    operator!=(nullptr_t, partial_ordering __v) noexcept
+    { return ! __v._M_is_ordered || 0 != __v._M_value; }
+
+    friend constexpr bool
+    operator<(nullptr_t, partial_ordering __v) noexcept
+    { return __v._M_is_ordered && 0 < __v._M_value; }
+
+    friend constexpr bool
+    operator<=(nullptr_t, partial_ordering __v) noexcept
+    { return __v._M_is_ordered && 0 <= __v._M_value; }
+
+    friend constexpr bool
+    operator>(nullptr_t, partial_ordering __v) noexcept
+    { return __v._M_is_ordered && 0 > __v._M_value; }
+
+    friend constexpr bool
+    operator>=(nullptr_t, partial_ordering __v) noexcept
+    { return __v._M_is_ordered && 0 >= __v._M_value; }
+  };
+
+  // valid values's definitions
+
+  inline constexpr partial_ordering
+  partial_ordering::less(ord::less);
+
+  inline constexpr partial_ordering
+  partial_ordering::equivalent(eq::equivalent);
+
+  inline constexpr partial_ordering
+  partial_ordering::greater(ord::greater);
+
+  inline constexpr partial_ordering
+  partial_ordering::unordered(ncmp::unordered);
+
+  // class weak_ordering
+
+  class weak_ordering
+  {
+    int _M_value;
+
+    explicit constexpr
+    weak_ordering(eq __v) noexcept
+    : _M_value(int(__v))
+    { }
+
+    explicit constexpr
+    weak_ordering(ord __v) noexcept :
+    _M_value(int(__v))
+    { }
+
+  public:
+
+    // valid values
+
+    static const weak_ordering less;
+    static const weak_ordering equivalent;
+    static const weak_ordering greater;
+
+    // conversions
+
+    constexpr operator weak_equality() const noexcept;
+    constexpr operator partial_ordering() const noexcept;
+
+    // comparisons
+
+    friend constexpr bool
+    operator==(weak_ordering __v, nullptr_t) noexcept
+    { return __v._M_value == 0; }
+
+    friend constexpr bool
+    operator!=(weak_ordering __v, nullptr_t) noexcept
+    { return __v._M_value != 0; }
+
+    friend constexpr bool
+    operator<(weak_ordering __v, nullptr_t) noexcept
+    { return __v._M_value < 0; }
+
+    friend constexpr bool
+    operator<=(weak_ordering __v, nullptr_t) noexcept
+    { return __v._M_value <= 0; }
+
+    friend constexpr bool
+    operator>(weak_ordering __v, nullptr_t) noexcept
+    { return __v._M_value > 0; }
+
+    friend constexpr bool
+    operator>=(weak_ordering __v, nullptr_t) noexcept
+    { return __v._M_value >= 0; }
+
+    friend constexpr bool
+    operator==(nullptr_t, weak_ordering __v) noexcept
+    { return 0 == __v._M_value; }
+
+    friend constexpr bool
+    operator!=(nullptr_t, weak_ordering __v) noexcept
+    { return 0 != __v._M_value; }
+
+    friend constexpr bool
+    operator<(nullptr_t, weak_ordering __v) noexcept
+    { return 0 < __v._M_value; }
+
+    friend constexpr bool
+    operator<=(nullptr_t, weak_ordering __v) noexcept
+    { return 0 <= __v._M_value; }
+
+    friend constexpr bool
+    operator>(nullptr_t, weak_ordering __v) noexcept
+    { return 0 > __v._M_value; }
+
+    friend constexpr bool
+    operator>=(nullptr_t, weak_ordering __v) noexcept
+    { return 0 >= __v._M_value; }
+  };
+
+  // valid values's definitions
+
+  inline constexpr weak_ordering
+  weak_ordering::less(ord::less);
+
+  inline constexpr weak_ordering
+  weak_ordering::equivalent(eq::equivalent);
+
+  inline constexpr weak_ordering
+  weak_ordering::greater(ord::greater);
+
+  // class strong ordering
+
+  class strong_ordering
+  {
+    int _M_value;
+
+    // exposition-only constructors
+
+    explicit constexpr
+    strong_ordering(eq __v) noexcept
+    : _M_value(int(__v))
+    {}
+
+    explicit constexpr
+    strong_ordering(ord __v) noexcept
+    : _M_value(int(__v))
+    {}
+
+  public:
+
+    // valid values
+
+    static const strong_ordering less;
+    static const strong_ordering equal;
+    static const strong_ordering equivalent;
+    static const strong_ordering greater;
+
+    // conversions
+
+    constexpr operator
+    weak_equality() const noexcept
+    {
+      return *this == equivalent
+	? weak_equality::equivalent
+	: weak_equality::nonequivalent;
+    }
+
+    constexpr operator
+    strong_equality() const noexcept
+    {
+      return *this == equal
+	? strong_equality::equal
+	: strong_equality::nonequal;
+    }
+
+    constexpr operator
+    partial_ordering() const noexcept
+    {
+      return *this == equivalent
+	? partial_ordering::equivalent
+	: *this == less
+		? partial_ordering::less
+		: partial_ordering::greater;
+    }
+
+    constexpr operator
+    weak_ordering() const noexcept
+    {
+      return *this == equivalent
+	? weak_ordering::equivalent
+	: *this == less
+		? weak_ordering::less
+		: weak_ordering::greater;
+    }
+
+
+    // comparisons
+
+    friend constexpr bool
+    operator==(strong_ordering __v, nullptr_t) noexcept
+    { return __v._M_value == 0; }
+
+    friend constexpr bool
+    operator!=(strong_ordering __v, nullptr_t) noexcept
+    { return __v._M_value != 0; }
+
+    friend constexpr bool
+    operator<(strong_ordering __v, nullptr_t) noexcept
+    { return __v._M_value < 0; }
+
+    friend constexpr bool
+    operator<=(strong_ordering __v, nullptr_t) noexcept
+    { return __v._M_value <= 0; }
+
+    friend constexpr bool
+    operator>(strong_ordering __v, nullptr_t) noexcept
+    { return __v._M_value > 0; }
+
+    friend constexpr bool
+    operator>=(strong_ordering __v, nullptr_t) noexcept
+    { return __v._M_value >= 0; }
+
+    friend constexpr bool
+    operator==(nullptr_t, strong_ordering __v) noexcept
+    { return 0 == __v._M_value; }
+
+    friend constexpr bool
+    operator!=(nullptr_t, strong_ordering __v) noexcept
+    { return 0 != __v._M_value; }
+
+    friend constexpr bool
+    operator<(nullptr_t, strong_ordering __v) noexcept
+    { return 0 < __v._M_value; }
+
+    friend constexpr bool
+    operator<=(nullptr_t, strong_ordering __v) noexcept
+    { return 0 <= __v._M_value; }
+
+    friend constexpr bool
+    operator>(nullptr_t, strong_ordering __v) noexcept
+    { return 0 > __v._M_value; }
+
+    friend constexpr bool
+    operator>=(nullptr_t, strong_ordering __v) noexcept
+    { return 0 >= __v._M_value; }
+  };
+
+  // valid values's definitions
+
+  inline constexpr strong_ordering
+  strong_ordering::less(ord::less);
+
+  inline constexpr strong_ordering
+  strong_ordering::equal(eq::equal);
+
+  inline constexpr strong_ordering
+  strong_ordering::equivalent(eq::equivalent);
+
+  inline constexpr strong_ordering
+  strong_ordering::greater(ord::greater);
+
+  // named comparison functions
+
+  constexpr bool
+  is_eq(weak_equality __cmp) noexcept
+  { return __cmp == 0; }
+
+  constexpr bool
+  is_neq (weak_equality __cmp) noexcept
+  { return __cmp != 0; }
+
+  constexpr bool
+  is_lt (partial_ordering __cmp) noexcept
+  { return __cmp < 0; }
+
+  constexpr bool
+  is_lteq(partial_ordering __cmp) noexcept
+  { return __cmp <= 0; }
+
+  constexpr bool
+  is_gt (partial_ordering __cmp) noexcept
+  { return __cmp > 0; }
+
+  constexpr bool
+  is_gteq(partial_ordering __cmp) noexcept
+  { return __cmp >= 0; }
+
+  // common comparison category type
+  template<typename... _Tps>
+  struct common_comparison_category
+  {
+    using type = /* see definition */ ;
+  };
+
+  template<typename... _Tps>
+  using common_comparison_category_t
+    = typename common_comparison_category<_Tps...>::type;
+
+  // comparison algorithms
+
+  template<typename _Tp>
+    constexpr strong_ordering
+    strong_order(const _Tp& __a, const _Tp& __b);
+
+  template<typename _Tp>
+    constexpr weak_ordering
+    weak_order(const _Tp& __a, const _Tp& __b);
+
+  template<typename _Tp>
+    constexpr partial_ordering
+    partial_order(const _Tp& __a, const _Tp& __b);
+
+  template<typename _Tp>
+    constexpr strong_equality
+    strong_equal(const _Tp& __a, const _Tp& __b);
+
+  template<typename _Tp>
+    constexpr weak_equality
+    weak_equal(const _Tp& __a, const _Tp& __b);
+
+_GLIBCXX_END_NAMESPACE_VERSION
+} // namespace std
+
+#endif // C++20
+
+#endif // _GLIBCXX_COMPARE
